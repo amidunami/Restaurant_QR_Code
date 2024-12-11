@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Menu</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Welcome to [Restaurant Name]</h1>
+    </header>
+    <main>
+        <section id="menu">
+            <h2>Our Menu</h2>
+            <div class="menu-item">
+                <img src="pizza.jpg" alt="Margherita Pizza">
+                <h3>Margherita Pizza</h3>
+                <p>Classic pizza with tomato sauce and mozzarella.</p>
+                <p>Price: $12.99</p>
+                <button>Add to Order</button>
+            </div>
+            <!-- Repeat for more menu items -->
+        </section>
+        <section id="cart">
+            <h2>Your Order</h2>
+            <div id="cart-items"></div>
+            <p>Total: $<span id="total-price">0.00</span></p>
+            <button id="place-order">Place Order</button>
+        </section>
+    </main>
+</body>
+</html>
