@@ -3,26 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple QR Code Generator</title>
+    <title>Restaurant Menu</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase Compatibility Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6E0gD319kiJM5KTQZWaEdRCKzy93okVg",
+            authDomain: "qr-code-ordering-system-e8be5.firebaseapp.com",
+            databaseURL: "https://qr-code-ordering-system-e8be5-default-rtdb.firebaseio.com",
+            projectId: "qr-code-ordering-system-e8be5",
+            storageBucket: "qr-code-ordering-system-e8be5.firebasestorage.app",
+            messagingSenderId: "126236590271",
+            appId: "1:126236590271:web:991481bfe65c389604860a",
+            measurementId: "G-HE5JRPBBVE"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        console.log("Firebase initialized:", app.name);
+
+        // Get table ID from query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const tableId = urlParams.get("table") || "default";
+
+        // Firebase cart reference for this table
+        const cartRef = db.ref(`carts/${tableId}`);
+
+        // Cart data structure
+        let cart = {};
+
+        // Add item to cart
+        function addToCart(itemName, itemPrice) {
+            if (!cart[itemName]) {
+                cart[itemName] = { price: itemPrice, quantity: 1 };
+            } else {
+                cart[itemName].quantity += 1;
+            }
+            updateFirebaseCart();
+        }
+
+        // Remove item from cart
+        function removeFromCart(itemName) {
+            if (cart[itemName]) {
+                cart[itemName].quantity -= 1;
+                if (cart[itemName].quantity <= 0) {
+                    delete cart[itemName];
+                }
+            }
+            updateFirebaseCart();
+        }
+
+        // Update Firebase with current cart data
+        function updateFirebaseCart() {
+            cartRef.set(cart)
+                .then(() => console.log("Cart updated in Firebase"))
+                .catch((error) => console.error("Error updating cart:", error));
+        }
+
+        // Listen for cart updates
+        cartRef.on("value", (snapshot) => {
+            cart = snapshot.val() || {};
+            updateCartDisplay();
+        });
+
+        // Update Cart Display
+        function updateCartDisplay() {
+            const cartItems = document.getElementById("cart-items");
+            const totalPrice = document.getElementById("total-price");
+            cartItems.innerHTML = ""; // Clear cart display
+            let total = 0;
+
+            Object.keys(cart).forEach((itemName) => {
+                const item = cart[itemName];
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    ${itemName} - $${item.price.toFixed(2)} x ${item.quantity}
+                    <button onclick="addToCart('${itemName}', ${item.price})">+</button>
+                    <button onclick="removeFromCart('${itemName}')">-</button>
+                `;
+                cartItems.appendChild(li);
+                total += item.price * item.quantity;
+            });
+
+            totalPrice.textContent = total.toFixed(2); // Update total price
+        }
+
+        // Place Order
+        function placeOrder() {
+            cartRef.once("value", (snapshot) => {
+                const orderData = snapshot.val();
+                if (!orderData) {
+                    alert("Your cart is empty!");
+                    return;
+                }
+
+                const orderItems = Object.values(orderData).map(item => item.name);
+                db.ref("orders").push({
+                    table: tableId,
+                    items: orderItems,
+                    timestamp: Date.now()
+                })
+                .then(() => {
+                    console.log("Order placed successfully");
+                    cartRef.remove(); // Clear the cart
+                    alert("Order placed successfully!");
+                })
+                .catch((error) => console.error("Error placing order:", error));
+            });
+        }
+    </script>
 </head>
 <body>
-    <h1>QR Code Generator</h1>
-    <input type="text" id="text" placeholder="Enter text or URL">
-    <button id="generate">Generate QR Code</button>
-    <div id="qrcode"></div>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-    <script>
-        document.getElementById('generate').addEventListener('click', () => {
-            const text = document.getElementById('text').value;
-            if (!text) return alert('Please enter text or a URL');
-            const qrDiv = document.getElementById('qrcode');
-            qrDiv.innerHTML = ''; // Clear existing QR code
-            const qr = qrcode(0, 'L');
-            qr.addData(text);
-            qr.make();
-            qrDiv.innerHTML = qr.createImgTag();
-        });
-    </script>
+    <header>
+        <h1>Restaurant Menu</h1>
+    </header>
+    <main>
+        <section id="menu">
+            <h2>Our Menu</h2>
+            <div class="menu-item">
+                <h3>Margherita Pizza</h3>
+                <p>Classic pizza with tomato sauce and mozzarella.</p>
+                <p>Price: $12.99</p>
+                <button onclick="addToCart('Margherita Pizza', 12.99)">Add to Order</button>
+            </div>
+            <div class="menu-item">
+                <h3>Cheeseburger</h3>
+                <p>Juicy cheeseburger with all the fixings.</p>
+                <p>Price: $10.99</p>
+                <button onclick="addToCart('Cheeseburger', 10.99)">Add to Order</button>
+            </div>
+        </section>
+        <section id="cart">
+            <h2>Your Order</h2>
+            <ul id="cart-items"></ul>
+            <p>Total: $<span id="total-price">0.00</span></p>
+            <button onclick="placeOrder()">Place Order</button>
+        </section>
+    </main>
 </body>
 </html>
