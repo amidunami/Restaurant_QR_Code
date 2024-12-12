@@ -5,28 +5,210 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurant Menu</title>
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Firebase Compatibility Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6E0gD319kiJM5KTQZWaEdRCKzy93okVg",
+            authDomain: "qr-code-ordering-system-e8be5.firebaseapp.com",
+            databaseURL: "https://qr-code-ordering-system-e8be5-default-rtdb.firebaseio.com",
+            projectId: "qr-code-ordering-system-e8be5",
+            storageBucket: "qr-code-ordering-system-e8be5.firebasestorage.app",
+            messagingSenderId: "126236590271",
+            appId: "1:126236590271:web:991481bfe65c389604860a",
+            measurementId: "G-HE5JRPBBVE"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        console.log("Firebase initialized:", app.name);
+
+        // Unique cart identifier
+        const cartRef = db.ref("carts/table_1");
+
+        // Cart data structure
+        let cart = {};
+
+        // Add item to cart
+        function addToCart(itemName, itemPrice) {
+            if (!cart[itemName]) {
+                cart[itemName] = { price: itemPrice, quantity: 1 };
+            } else {
+                cart[itemName].quantity += 1;
+            }
+            updateFirebaseCart();
+        }
+
+        // Remove item from cart
+        function removeFromCart(itemName) {
+            if (cart[itemName]) {
+                cart[itemName].quantity -= 1;
+                if (cart[itemName].quantity <= 0) {
+                    delete cart[itemName];
+                }
+            }
+            updateFirebaseCart();
+        }
+
+        // Update Firebase with current cart data
+        function updateFirebaseCart() {
+            cartRef.set(cart)
+                .then(() => console.log("Cart updated in Firebase"))
+                .catch((error) => console.error("Error updating cart:", error));
+        }
+
+        // Listen for cart updates
+        cartRef.on("value", (snapshot) => {
+            cart = snapshot.val() || {};
+            updateCartDisplay();
+        });
+
+        // Update Cart Display
+        function updateCartDisplay() {
+            const cartItems = document.getElementById("cart-items");
+            const totalPrice = document.getElementById("total-price");
+            cartItems.innerHTML = ""; // Clear cart display
+            let total = 0;
+
+            Object.keys(cart).forEach((itemName) => {
+                const item = cart[itemName];
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    ${itemName} - $${item.price.toFixed(2)} x ${item.quantity}
+                    <button onclick="addToCart('${itemName}', ${item.price})">+</button>
+                    <button onclick="removeFromCart('${itemName}')">-</button>
+                `;
+                cartItems.appendChild(li);
+                total += item.price * item.quantity;
+            });
+
+            totalPrice.textContent = total.toFixed(2); // Update total price
+        }
+
+        // Scroll to category
+        function scrollToCategory(categoryId) {
+            document.getElementById(categoryId).scrollIntoView({ behavior: "smooth" });
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #f8b400;
+            color: white;
+            padding: 1em;
+            text-align: center;
+        }
+        nav {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            border-bottom: 1px solid #ddd;
+            padding: 1em;
+            display: flex;
+            justify-content: space-around;
+        }
+        nav button {
+            border: none;
+            background-color: #f8b400;
+            color: white;
+            padding: 0.5em 1em;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        nav button:hover {
+            background-color: #d19400;
+        }
+        section {
+            padding: 1em;
+        }
+        .menu-item {
+            border-bottom: 1px solid #ddd;
+            padding: 1em 0;
+        }
+        .menu-item h3 {
+            margin: 0;
+        }
+        .menu-item p {
+            margin: 0.5em 0;
+        }
+        #cart {
+            margin-top: 2em;
+        }
+        #cart ul {
+            list-style: none;
+            padding: 0;
+        }
+        #cart li {
+            margin: 0.5em 0;
+        }
+        #cart button {
+            margin-left: 0.5em;
+            padding: 0.2em 0.5em;
+        }
+    </style>
 </head>
 <body>
     <header>
-        <h1>Welcome to [Restaurant Name]</h1>
+        <h1>Restaurant Menu</h1>
     </header>
+    <nav>
+        <button onclick="scrollToCategory('appetizers')">Appetizers</button>
+        <button onclick="scrollToCategory('mains')">Mains</button>
+        <button onclick="scrollToCategory('drinks')">Drinks</button>
+        <button onclick="scrollToCategory('desserts')">Desserts</button>
+    </nav>
     <main>
-        <section id="menu">
-            <h2>Our Menu</h2>
+        <section id="appetizers">
+            <h2>Appetizers</h2>
             <div class="menu-item">
-                <img src="pizza.jpg" alt="Margherita Pizza">
+                <h3>Spring Rolls</h3>
+                <p>Delicious vegetable spring rolls.</p>
+                <p>Price: $5.99</p>
+                <button onclick="addToCart('Spring Rolls', 5.99)">Add to Order</button>
+            </div>
+        </section>
+        <section id="mains">
+            <h2>Mains</h2>
+            <div class="menu-item">
                 <h3>Margherita Pizza</h3>
                 <p>Classic pizza with tomato sauce and mozzarella.</p>
                 <p>Price: $12.99</p>
-                <button>Add to Order</button>
+                <button onclick="addToCart('Margherita Pizza', 12.99)">Add to Order</button>
             </div>
-            <!-- Repeat for more menu items -->
+        </section>
+        <section id="drinks">
+            <h2>Drinks</h2>
+            <div class="menu-item">
+                <h3>Coke</h3>
+                <p>Chilled Coca-Cola can.</p>
+                <p>Price: $1.99</p>
+                <button onclick="addToCart('Coke', 1.99)">Add to Order</button>
+            </div>
+        </section>
+        <section id="desserts">
+            <h2>Desserts</h2>
+            <div class="menu-item">
+                <h3>Chocolate Cake</h3>
+                <p>Rich chocolate cake slice.</p>
+                <p>Price: $4.99</p>
+                <button onclick="addToCart('Chocolate Cake', 4.99)">Add to Order</button>
+            </div>
         </section>
         <section id="cart">
             <h2>Your Order</h2>
-            <div id="cart-items"></div>
+            <ul id="cart-items"></ul>
             <p>Total: $<span id="total-price">0.00</span></p>
-            <button id="place-order">Place Order</button>
+            <button onclick="placeOrder()">Place Order</button>
         </section>
     </main>
 </body>
